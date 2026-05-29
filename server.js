@@ -10,7 +10,14 @@ require("./db");
 
 // Imports Express (a Node.js framework for handling HTTP requests) and initializes the server
 const express = require("express");
+const cors = require("cors")
 const app = express();
+
+app.use(
+  cors({
+    origin: "http://localhost:5174",
+  })
+)
 
 // ℹ️ Loads and applies global middleware (CORS, JSON parsing, etc.) for server configurations
 const config = require("./config")

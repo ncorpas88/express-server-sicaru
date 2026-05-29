@@ -1,97 +1,153 @@
 const router = require("express").Router();
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const User = require("../models/User.model");
-const {verifyToken} = require("../middlewares/auth.middlewares");
-const { json } = require("express");
 
-// POST "/api/auth/signup" => Ruta para registrar un usuario.
-router.post("/signup", async(res, rec, next) => {
+const { verifyToken } = require("../middlewares/auth.middlewares");
 
-    const {username, email, password} = req.body;
+// =========================
+// SIGNUP
+// =========================
+router.post("/signup", async (req, res, next) => {
+  const { username, email, password } = req.body;
 
-    // Comprobar que todos los campos existan y tengan valores.
-    if (!username || !email || !password) {
-        res.status(400).json({errorMessage: "Todos los campos son obligatorios. (username, email, password)."});
-        return;
+  // Validar campos
+  if (!username || !email || !password) {
+    return res.status(400).json({
+      errorMessage: "Todos los campos son obligatorios",
+    });
+  }
+
+  // Validar contraseña
+  const regexPassword =
+    /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,16}$/;
+
+  if (!regexPassword.test(password)) {
+    return res.status(400).json({
+      errorMessage:
+        "La contraseña debe tener entre 8 y 16 caracteres, incluir un número y un carácter especial",
+    });
+  }
+
+  try {
+    // Verificar si usuario ya existe
+    const foundUser = await User.findOne({
+      email,
+    });
+
+    if (foundUser) {
+      return res.status(400).json({
+        errorMessage: "Ya existe un usuario con ese email",
+      });
     }
-    // Se valida la contraseña.
-    let regexPassword = /^(?=.*[0-9])(?=.*[!@#$%^&*])[a-zA-Z0-9!@#$%^&*]{8,16}$/;
-    if (regexPassword.test(password0) === false) {
-        res.status(400).json({errorMessage: "La contraseña no es valida. Debe contener al menos una letra, un numero, un caracter especial y tener entre 8 y 16 carácteres."});
-        return;
-    }
 
-    try {
-        // Mail sea unico
-        const foundUser = await User.findOne({email:email});
-        
-        if (foundUser !== null) {
-            res.status(400).json({errorMessage: "Ya existe un usuario con ese email"});
-            return;
-        };
+    // Encriptar contraseña
+    const hashPassword = await bcrypt.hash(password, 12);
 
-        // Se cifra la contraseña
-        const hashPassword = await bcrypt.hash(password, 12);
+    // Crear usuario
+    const newUser = await User.create({
+      username,
+      email,
+      password: hashPassword,
 
-        await User.create({
-            username,
-            email,
-            password:hashPassword
-        });
+      // IMPORTANTE
+      role: "customer",
+    });
 
-        res.status(201).json({message: "Usuario creado exitosamente"});
+    res.status(201).json({
+      message: "Usuario creado exitosamente",
 
-    } catch (error) {
-        next(error);
-    };
+      user: {
+        _id: newUser._id,
+        username: newUser.username,
+        email: newUser.email,
+        role: newUser.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
-// POST "/api/auth/login" => Validar las credenciales del usuario (autenticarlo) y entregarle el token.
-router.post("/login", async(req, res, next) => {
+// =========================
+// LOGIN
+// =========================
+router.post("/login", async (req, res, next) => {
+  const { email, password } = req.body;
 
-    const {email, password} = req.body;
+  // Validar campos
+  if (!email || !password) {
+    return res.status(400).json({
+      errorMessage: "Todos los campos son obligatorios",
+    });
+  }
 
-    if (!email || !password) {
-        res.status(400),json({errorMessage: "Todos los campos son obligatorios. (email, password)."});
-        return;
+  try {
+    // Buscar usuario
+    const foundUser = await User.findOne({
+      email,
+    });
+
+    if (!foundUser) {
+      return res.status(400).json({
+        errorMessage: "Usuario no registrado",
+      });
+    }
+
+    // Comparar contraseña
+    const isPasswordCorrect = await bcrypt.compare(
+      password,
+      foundUser.password,
+    );
+
+    if (!isPasswordCorrect) {
+      return res.status(400).json({
+        errorMessage: "La contraseña no es válida",
+      });
+    }
+
+    // Crear payload JWT
+    const payload = {
+      _id: foundUser._id,
+      email: foundUser.email,
+      role: foundUser.role,
     };
 
-    try {
-        const foundUser = await User.findOne({email:email});
-        if (foundUser === null) {
-            res.status(400).json({errorMessage: "Usuario no registrado"});
-            return;
-        };
+    // Crear token
+    const authToken = jwt.sign(payload, process.env.TOKEN_SECRET, {
+      algorithm: "HS256",
 
-        const isPasswordCorrect = await bcrypt.compare(password, foundUser.password);
-        if (isPasswordCorrect === false) {
-            res.status(400).json({errorMessage: "La contraseña no es válida"});
-            return;
-        };
+      expiresIn: "7d",
+    });
 
-        const payload = {
-            _id:foundUser._id,
-            email:foundUser.email
-        };
+    // Respuesta
+    res.status(200).json({
+      authToken,
 
-        const authToken = jwt.sign(payload, process.env.TOKEN_SECRET,{
-            algorithm:"HS256",
-            expiresIn:"365d"
-        });
+      user: {
+        _id: foundUser._id,
 
-        res.status(200).json({authToken});
+        username: foundUser.username,
 
-    } catch (error) {
-        next(error);
-    };
+        email: foundUser.email,
+
+        role: foundUser.role,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
-// GET "/api/auth/verify" => Validar el token (después de generar el token y cuando el usuario vuelva a la app).
+// =========================
+// VERIFY TOKEN
+// =========================
 router.get("/verify", verifyToken, (req, res) => {
-    res.json({payload: req.payload});
+  res.status(200).json({
+    payload: req.payload,
+  });
 });
 
-
-module.exports = router; 
+module.exports = router;

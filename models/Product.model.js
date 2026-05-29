@@ -1,54 +1,45 @@
-const { Schema, model, Types } = require("mongoose");
+const { Schema, model } = require("mongoose");
 
-const productShema = new Schema({
-  name: {
-    type: String,
-    required: true,
-    unique: true,
-  },
-  description: {
-    type: String,
-    required: true,
-  },
-  category: {
-    type: String,
-    required: true,
-  },
-  category: {
-    type: String,
-    required: true,
-    enum: ["Ropa", "Accesorios", "Calzado", "Alimentacion", "Cocina", "Otros"],
-  },
-  price: {
-    type: Number,
-    required: true,
-    min: 0,
-  },
-  raiting: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 5,
-  },
-  reviews: [
-    {
-      type: Types.ObjectId,
-      ref: "Review",
+const productSchema = new Schema(
+  {
+    title: {
+      type: String,
+      required: true,
     },
-  ],
-  createdBy: {
-    type: Types.ObjectId,
-    REF: "User",
-    required: true,
+
+    description: {
+      type: String,
+      required: true,
+    },
+
+    price: {
+      type: Number,
+      required: true,
+    },
+
+    image: {
+      type: String,
+      required: true,
+    },
+
+    stock: {
+      type: Number,
+      default: 0,
+    },
+
+    category: {
+      type: String,
+      default: "Huipiles",
+    },
+
+    createdBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
-  image: {
-    type: String,
-    default: "",
+  {
+    timestamps: true,
   },
-},
-{timestamps: true,}
 );
 
-const Product = model("Product", productShema);
-
-module.exports = Product;
+module.exports = model("Product", productSchema);
