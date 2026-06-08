@@ -1,31 +1,31 @@
 
-const { Shema, model, Types } = require("mongoose");
+const { Schema, model, Types } = require("mongoose");
 
-const cartShema = new Shema(
-    {
-        user: {
-            type: Types.ObjectId,
-            ref: "User",
-            required: true,
-        },
-        items: [
-            {
-                pruduct: {
-                    type: Types.ObjectId,
-                    ref: "Product",
-                    requred: true,
-                },
-                quantity: {
-                    type: Number,
-                    default: 1,
-                min:1,                
-            },
-            },
-        ],
+const cartSchema = new Schema(
+  {
+    user: {
+      type: Types.ObjectId,
+      ref: "User",
+      required: true,
     },
-    { timestamps: true }
+    items: [
+      {
+        product: {
+          type: Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        quantity: {
+          type: Number,
+          default: 1,
+          min: 1,
+        },
+      },
+    ],
+  },
+  { timestamps: true }
 );
 
-const Cart = model("Cart", cartShema);
+const Cart = model("Cart", cartSchema);
 
 module.exports = Cart;

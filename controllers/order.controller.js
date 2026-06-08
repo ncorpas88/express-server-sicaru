@@ -59,6 +59,8 @@ exports.getMyOrders = async (
     const orders = await Order.find({
       user: req.payload._id,
     })
+      .populate("products.product")
+      .sort({ createdAt: -1 })
 
     res.status(200).json(orders)
   } catch (error) {
