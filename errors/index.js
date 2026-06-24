@@ -33,6 +33,8 @@ function handleErrors(app) {
 
     res.status(500).json({
       message: "Internal server error. Check the server console for details",
+      errorType: err.name || "UnknownError",
+      errorDetail: err.message || "No message",
     });
   });
 };
