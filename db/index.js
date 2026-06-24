@@ -15,5 +15,4 @@ mongoose
   })
   .catch((err) => {
     console.error("FATAL: Error connecting to mongo: ", err.message);
-    process.exit(1);
   });
