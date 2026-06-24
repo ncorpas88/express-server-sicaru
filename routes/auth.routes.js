@@ -32,14 +32,19 @@ router.post("/signup", async (req, res, next) => {
   }
 
   try {
-    // Verificar si usuario ya existe
-    const foundUser = await User.findOne({
-      email,
-    });
-
-    if (foundUser) {
+    // Verificar si email ya existe
+    const foundByEmail = await User.findOne({ email });
+    if (foundByEmail) {
       return res.status(400).json({
         errorMessage: "Ya existe un usuario con ese email",
+      });
+    }
+
+    // Verificar si username ya existe
+    const foundByUsername = await User.findOne({ username });
+    if (foundByUsername) {
+      return res.status(400).json({
+        errorMessage: "Ese nombre de usuario ya está en uso",
       });
     }
 
